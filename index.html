@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./assets/style/style.css" />
+    <title>Weather App</title>
+</head>
+
+<body>
+    <div class="card">
+        <div class="search">
+            <input type="text" placeholder="Enter city name" spellcheck="false" id="cityName" />
+            <button onclick="checkWeather()"><img src="./assets/image/search.png" alt="search button"></button>
+        </div>
+        <div class="error">
+            <p>Enter correct city name</p>
+        </div>
+        <div class="weather">
+            <img src="./assets/image/clear.png" alt="" class="weather-icon">
+            <h1 class="temp">22 c</h1>
+            <h2 class="city">New York</h2>
+            <div class="details">
+                <div class="col">
+                    <img src="assets/image/humidity.png" />
+                    <div>
+                        <p class="humidity">50%</p>
+                        <p>Humidity</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <img src="assets/image/wind.png" />
+                    <div>
+                        <p class="wind">15 km/hr</p>
+                        <p>Wind Speed</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+<script>
+    const API_KEY = '039e13cb5be4dd49df46756f3bd50edf';
+    const API_COORDINATES = 'http://api.openweathermap.org/geo/1.0/direct'
+    const API_WEATHER = 'https://api.openweathermap.org/data/2.5/weather';
+
+    const weatherIcon = document.querySelector('.weather-icon')
+    const error = document.querySelector('.error')
+
+    // Helper function to build URL with query parameters
+    const buildUrl = (baseUrl, params) => {
+        const query = new URLSearchParams(params);
+        return `${baseUrl}?${query.toString()}`;
+    };
+
+    async function getCoordinates() {
+        try {
+            const cityName = document.getElementById('cityName').value;
+            const url = buildUrl(API_COORDINATES, { q: cityName, appid: API_KEY });
+            const response = await fetch(url);
+            const data = await response.json();
+            return data?.[0];
+        } catch (error) {
+            error.style.display = 'block'
+            console.log('Error in Get Coordinate API', error)
+        }
+    }
+
+    function updateWeatherIcon(condition) {
+        const iconMapping = {
+            Clouds: 'clouds.png',
+            Clear: 'clear.png',
+            Drizzle: 'drizzle.png',
+            Humidity: 'humidity.png',
+            Mist: 'mist.png',
+            Rain: 'rain.png',
+            Snow: 'snow.png',
+            Wind: 'wind.png',
+            Haze: 'haze.png'
+        };
+
+        // Use a default icon if the condition doesn't match
+        const iconFile = iconMapping[condition] || iconMapping['Clear'];
+        weatherIcon.src = `assets/image/${iconFile}`;
+    }
+
+    async function checkWeather() {
+        try {
+            const coordinates = await getCoordinates();
+
+            if (!coordinates) {
+                console.error('Coordinates not found.');
+                error.style.display = 'block'
+                return;
+            }
+
+            const { lat, lon } = coordinates;
+
+            const url = buildUrl(API_WEATHER, {
+                appid: API_KEY,
+                units: 'metric',
+                lat,
+                lon,
+                limit: 5
+            });
+
+            const response = await fetch(url)
+            const data = await response.json()
+
+            // Destructure properties for clarity
+            const { name, main, wind, weather } = data;
+
+            document.querySelector('.city').innerHTML = name;
+            document.querySelector('.temp').innerHTML = `${Math.round(main.temp)}°c`;
+            document.querySelector('.humidity').innerHTML = `${main.humidity}%`;
+            document.querySelector('.wind').innerHTML = `${wind.speed} km/hr`;
+
+            updateWeatherIcon(weather[0].main);
+            document.querySelector('.weather').style.display = 'block'
+            error.style.display = 'none'
+        } catch (error) {
+            error.style.display = 'block'
+            console.log('Error in Get Weather API', error)
+        }
+    }
+</script>
+
+</html>
